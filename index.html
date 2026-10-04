@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#12232E">
+<title>HVACR File Vault</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<style>
+:root{--bg:#E9EDEE;--ink:#12232E;--pan:#fff;--ac:#0A5C7A;--ln:#C5CED3;--mut:#5A6B76}
+@media(prefers-color-scheme:dark){:root{--bg:#0E1A22;--ink:#E6EEF2;--pan:#16262F;--ac:#5CC0E3;--ln:#2C4350;--mut:#93A8B4}}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 Barlow,system-ui,sans-serif;padding:env(safe-area-inset-top) 0 calc(64px + env(safe-area-inset-bottom))}
+h1,h2,h3{font-family:'Barlow Condensed',Impact,sans-serif;margin:0;letter-spacing:.2px}
+header{background:#12232E;color:#fff;padding:14px 14px 12px}
+header h1{font-size:26px}header p{margin:2px 0 0;font-size:13px;color:#9FB6C3}
+main{max-width:860px;margin:auto;padding:12px}
+.card{background:var(--pan);border:1px solid var(--ln);border-radius:6px;padding:12px;margin:0 0 12px}
+.drop{border:2px dashed var(--ac);text-align:center;padding:18px;cursor:pointer}
+.drop.on{background:rgba(10,92,122,.12)}
+input[type=text],input[type=search],select{width:100%;font:inherit;padding:11px;border:1px solid var(--ln);border-radius:6px;background:var(--pan);color:var(--ink)}
+button{font:inherit;font-weight:600;padding:9px 13px;border-radius:6px;border:1px solid var(--ac);background:var(--ac);color:#fff;cursor:pointer}
+button.g{background:transparent;color:var(--ac)}
+:focus-visible{outline:3px solid #FFB000;outline-offset:2px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>input{flex:1;min-width:140px}
+label.o{font-size:14px;color:var(--mut)}
+mark.y{background:#FFE600;color:#000;padding:0 1px;border-radius:2px}
+mark.r{background:#D81E1E;color:#fff;padding:0 1px;border-radius:2px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.chip{border:1px solid var(--ln);background:var(--pan);color:var(--ink);border-radius:20px;padding:5px 11px;font-size:14px;font-weight:500}
+.chip.on{background:var(--ink);color:var(--bg)}.chip.z{border-color:#D81E1E;color:#D81E1E}
+.sn{font-size:14px;color:var(--mut);margin:6px 0 0;word-break:break-word}
+.tag{display:inline-block;font-size:12px;background:var(--bg);border:1px solid var(--ln);border-radius:4px;padding:0 6px;margin:0 4px 2px 0}
+.bar{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:14px}.bar b{flex:0 0 38%;font-weight:500;overflow-wrap:anywhere}
+.bar i{display:block;height:16px;background:var(--ac);border-radius:2px;min-width:3px}.bar span{flex:1}
+details{border-top:1px solid var(--ln);padding:6px 0}summary{cursor:pointer;font-weight:600}
+pre{white-space:pre-wrap;word-break:break-word;font:13px/1.4 ui-monospace,Menlo,monospace;max-height:320px;overflow:auto;background:var(--bg);padding:8px;border-radius:4px}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:#12232E;padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav button{flex:1;border:0;border-radius:0;background:none;color:#9FB6C3;font-size:13px;padding:12px 2px}
+nav button.on{color:#fff;box-shadow:inset 0 3px #FFE600}
+.v{display:none}.v.on{display:block}
+.note{font-size:13px;color:var(--mut)}
+a{color:var(--ac)}
+</style></head><body>
+<header><h1>HVACR File Vault</h1><p>Work orders, manuals and component data in one searchable place. Files stay on this device.</p></header>
+<main>
+
+<section class="v on" id="v-search">
+ <div class="card drop" id="drop" tabindex="0" role="button">
+  <b>Drop PDF, Excel, Word or photos here, or tap to choose</b>
+  <div class="note">PDF, XLS/XLSX/CSV, DOCX, TXT, PNG/JPG. Scanned pages and photos are read with OCR.</div>
+  <input id="file" type="file" multiple hidden accept=".pdf,.xls,.xlsx,.xlsm,.csv,.doc,.docx,.txt,.png,.jpg,.jpeg">
+ </div>
+ <div class="row" style="margin-bottom:12px"><label class="o"><input type="checkbox" id="deep"> Deep OCR (also read photos inside PDFs, slower)</label>
+  <button class="g" id="sample">Load example work order</button></div>
+ <div id="prog" class="note"></div>
+ <div class="card">
+  <div class="row"><input type="search" id="q" placeholder="Word, letters, number or pattern (e.g. FBN5000, 1635, ReCal)" autocomplete="off"><button id="go">Search</button></div>
+  <div class="row" style="margin-top:8px"><label class="o"><input type="checkbox" id="rx"> Pattern (regex, e.g. FBN\d{4})</label></div>
+  <div class="note">Yellow = found in the file title. Red = found inside the file.</div>
+ </div>
+ <div id="groups"></div><div id="results"></div>
+ <details class="card"><summary id="libsum">Repository</summary><div id="lib"></div></details>
+</section>
+
+<section class="v" id="v-prob">
+ <div class="card"><h2>What keeps going wrong</h2>
+ <p class="note">Each EQUIPMENT LEVEL RESOLUTIONS entry is sorted into problem types by keywords. An entry can land in more than one.</p><div id="probs"></div></div>
+</section>
+
+<section class="v" id="v-equip">
+ <div class="card"><h2>Problem equipment</h2>
+ <p class="note">Entries with a problem type or an Additional request / Next step, grouped by who built it.</p>
+ <select id="grp"><option value="mfr">Manufacturer</option><option value="m4">Model (first 4 characters)</option><option value="mfr+m4">Manufacturer + model (first 4)</option><option value="serial">Serial number</option></select>
+ <div id="equip" style="margin-top:10px"></div></div>
+</section>
+
+<section class="v" id="v-man">
+ <div class="card"><h2>Manuals and technical info</h2>
+ <p class="note">Brands found in your latest search results (or the whole vault). Each button opens Google Advanced Search with the brand, your terms and the site pre-filled.</p>
+ <input type="text" id="mq" placeholder="Extra terms, e.g. FBN5000 wiring diagram">
+ <div id="brands" style="margin-top:10px"></div></div>
+ <div class="card"><h3>Add a website</h3>
+ <p class="note">Use when a manufacturer portal needs a login or blocks results. Saved on this device and added to every brand.</p>
+ <div class="row"><input type="text" id="ns" placeholder="e.g. navigator.york.com"><button id="addsite">Save site</button></div>
+ <div id="sites"></div></div>
+</section>
+
+<section class="v" id="v-log">
+ <div class="card"><h2>Search history</h2>
+ <p class="note">Every search with its result groups and the original matches, including OCR text and XOi links.</p><div id="hist"></div>
+ <button class="g" id="clr">Clear history</button></div>
+ <div class="card"><h3>XOi links in the vault</h3>
+ <div class="row"><input type="text" id="xl" placeholder="Paste an XOi link, add notes or photo text"><button id="xadd">Save link</button></div>
+ <p class="note">XOi pages need your login, so the app can't open them for you. Links found in files and pasted here are searchable. Upload XOi photos or screenshots to read them with OCR.</p><div id="xlist"></div></div>
+</section>
+</main>
+<nav><button data-t="search" class="on">Search</button><button data-t="prob">Problems</button><button data-t="equip">Equipment</button><button data-t="man">Manuals</button><button data-t="log">History</button></nav>
+
+<script>
+const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const escRe=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+const BRANDS=['Trane','Carrier','AAON','Daikin','Lennox','York','ABB','Danfoss','Yaskawa','Lochinvar','Copeland','Honeywell','Johnson Controls','Bard','Rheem','Mitsubishi','Goodman','McQuay','Bryant','Armstrong','Cleaver-Brooks','AERCO','Belimo','Siemens','Schneider','Emerson','Vertiv','Liebert','Evapco','Marley','Greenheck','US Draft'];
+const BR=new RegExp('\\b('+BRANDS.map(escRe).join('|')+')\\b','gi'),canon=n=>BRANDS.find(b=>b.toLowerCase()==n.toLowerCase())||n;
+const brandsIn=t=>[...new Set((String(t).match(BR)||[]).map(canon))];
+const SITES={Trane:['tranesupply.com','trane.com'],Carrier:['carrierenterprise.com','carrier.com'],York:['johnsoncontrols.com','york.com'],'Johnson Controls':['johnsoncontrols.com'],Daikin:['daikinapplied.com','daikincomfort.com'],Lennox:['lennoxpros.com','lennox.com'],AAON:['aaon.com'],ABB:['new.abb.com'],Danfoss:['danfoss.com'],Yaskawa:['yaskawa.com'],Lochinvar:['lochinvar.com'],McQuay:['daikinapplied.com'],Copeland:['copeland.com'],'US Draft':['usdraft.com']};
+const DOCTYPES=['technical manual','installation manual','service manual','IOM manual','wiring diagram','parts list','startup commissioning','troubleshooting'];
+const CATS={'Refrigerant':/refrigerant|leak|low charge|\bcharge\b|superheat|subcool|compressor|\btxv\b|r-?410a|r-?22\b|r-?454|r-?32\b|suction|discharge pressure|evaporator|condenser coil|\bcoil\b/i,
+'Electrical':/electrical|\bvolts?\b|\bamps?\b|breaker|fuse|contactor|capacitor|relay|transformer|wiring|short|ground fault|motor|\bvfd\b|drive|power/i,
+'Controls / sensors':/control|sensor|thermostat|transducer|setpoint|set point|board|\bvic\b|calibrat|programm|\bbas\b|actuator|damper/i,
+'Combustion / gas':/\bgas\b|combustion|burner|fuel|flue|exhaust|ignit|flame|\bco\b|firing rate|draft/i,
+'Water / hydronic':/boiler|water|loop|pump|chiller|cooling tower|glycol|freez|hydronic|valve|basin/i,
+'Airflow / mechanical':/airflow|belt|bearing|fan|blower|filter|duct|vibration|noise|hum/i,
+'Commissioning / setup':/commission|start-?up|set ?up|per the iom|not configured|incorrect setting|factory setting|minimum|ramp|adjust/i,
+'Maintenance':/maintenance|\bpm\b|dirty|clean|lubric|plugged|clogged|neglect|filter/i,
+'Component failure':/failed|failure|bad\b|defective|faulty|burn(t|ed)|seized|tripped|not working|replace|inoperative|locked out|needs? recal/i,
+'Prior tech / training':/previous tech|prior tech|improper|incorrectly|installed wrong|wired wrong|jumper|bypass|not per|should have|miswired|left as is/i};
+const classify=t=>Object.keys(CATS).filter(k=>CATS[k].test(t));
+
+/* storage */
+const dbp=new Promise(r=>{const q=indexedDB.open('hvacr',1);q.onupgradeneeded=()=>q.result.createObjectStore('docs',{keyPath:'id'});q.onsuccess=()=>r(q.result)});
+const tx=async(m,f)=>{const d=await dbp;return new Promise((ok,no)=>{const t=d.transaction('docs',m),q=f(t.objectStore('docs'));t.oncomplete=()=>ok(q&&q.result);t.onerror=()=>no(t.error)})};
+const ls=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+let docs=[],LAST=null,GRP='all';
+
+/* extraction */
+const loadJs=u=>new Promise((ok,no)=>{const s=document.createElement('script');s.src=u;s.onload=ok;s.onerror=no;document.head.appendChild(s)});
+async function ocr(src){if(!window.Tesseract)await loadJs('https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.5/tesseract.min.js');const r=await Tesseract.recognize(src,'eng');return r.data.text}
+async function extract(f){
+ const ext=f.name.split('.').pop().toLowerCase();let text='',used=false;
+ if(ext=='pdf'){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;
+  for(let i=1;i<=pdf.numPages;i++){$('#prog').textContent=`${f.name}: page ${i} of ${pdf.numPages}`;const p=await pdf.getPage(i);
+   const c=await p.getTextContent();let t=c.items.map(x=>x.str+(x.hasEOL?'\n':' ')).join('');
+   if(t.trim().length<40||$('#deep').checked){const v=p.getViewport({scale:2}),cv=document.createElement('canvas');cv.width=v.width;cv.height=v.height;
+    await p.render({canvasContext:cv.getContext('2d'),viewport:v}).promise;try{t+='\n[OCR] '+await ocr(cv);used=true}catch(e){}}
+   text+=t+'\n'}}
+ else if(/^xls/.test(ext)||ext=='csv'){const wb=XLSX.read(await f.arrayBuffer());wb.SheetNames.forEach(n=>text+=`[Sheet: ${n}]\n`+XLSX.utils.sheet_to_csv(wb.Sheets[n])+'\n')}
+ else if(ext=='docx')text=(await mammoth.extractRawText({arrayBuffer:await f.arrayBuffer()})).value;
+ else if(/png|jpe?g/.test(ext)){$('#prog').textContent=`${f.name}: reading photo (OCR)`;text='[OCR] '+await ocr(f);used=true}
+ else if(ext=='doc'){text=(new TextDecoder('latin1').decode(await f.arrayBuffer()).match(/[\x20-\x7e]{6,}/g)||[]).join('\n')}
+ else text=await f.text();
+ return {text,used,ext}}
+
+/* work order parsing */
+const BA=BRANDS.map(escRe).join('|');
+function parseWO(t){
+ const wo=(t.match(/Work Order:?\s*(\d+)/i)||[])[1]||'',date=(t.match(/Service Date:?\s*([\d\/-]+)/i)||[])[1]||'';
+ const m=t.match(/EQUIPMENT LEVEL RESOLUTIONS([\s\S]*?)(?=VISIT PICTURES|Signature:|$)/i);if(!m)return{wo,date,items:[]};
+ const sec=m[1].replace(/Equipment\s+Equipment Description\s+Manufacturer\s+Model\s*\/\s*Serial No\.?/i,'').trim();
+ const re=new RegExp('^([^\\n]{3,90}?)\\s+('+BA+')\\s+(\\S+)\\s*\\/\\s*(\\S+)','i'),h=sec.match(re);
+ let it={equip:'',desc:'',mfr:'Unknown',model:'',serial:'',narr:sec};
+ if(h){const p=h[1].match(/^(\S+(?:\s\d+)?)\s+(.*)$/)||[0,h[1],''];it={equip:p[1],desc:p[2],mfr:canon(h[2]),model:h[3],serial:h[4],narr:sec.slice(h[0].length)}}
+ else{const b=brandsIn(sec)[0];if(b)it.mfr=b}
+ const recs=[...it.narr.matchAll(/(Next step|Additional (?:work )?(?:request|recommendations?)|Recommend(?:ation)?s?)\s*:?\s*([\s\S]*?)(?=\n\s*-\s*\n|\n\s*-\s*$|Returning|Incomplete|$)/gi)].map(x=>x[1]+': '+x[2].replace(/\s+/g,' ').trim());
+ it.recs=recs;it.cats=classify(it.narr);return{wo,date,items:[it]}}
+
+async function addDoc(f){
+ const r=await extract(f);const id=f.name+'|'+f.size;
+ const d={id,name:f.name,type:r.ext.replace('xlsm','xlsx'),size:f.size,added:Date.now(),text:r.text,ocr:r.used,links:[...new Set(r.text.match(/https?:\/\/[^\s)"'<>]+/gi)||[])],wo:parseWO(r.text)};
+ await tx('readwrite',s=>s.put(d))}
+async function refresh(){docs=await tx('readonly',s=>s.getAll())||[];renderLib();renderAll()}
+async function handle(files){for(const f of files){try{await addDoc(f)}catch(e){$('#prog').textContent='Could not read '+f.name+': '+e.message}}$('#prog').textContent='';refresh()}
+
+/* search */
+const hl=(t,re,c)=>{let o='',i=0,m;re.lastIndex=0;while((m=re.exec(t))){if(!m[0]){re.lastIndex++;continue}o+=esc(t.slice(i,m.index))+`<mark class="${c}">${esc(m[0])}</mark>`;i=m.index+m[0].length}return o+esc(t.slice(i))};
+const typeName=e=>/pdf/.test(e)?'PDF':/xls|csv/.test(e)?'Excel':/doc/.test(e)?'Word':/png|jpe?g/.test(e)?'Photo (OCR)':'Text';
+function search(){
+ const q=$('#q').value.trim();if(!q){LAST=null;renderResults();return}
+ let re;try{re=new RegExp($('#rx').checked?q:escRe(q),'gi')}catch(e){$('#results').innerHTML='<div class="card">That pattern is not valid. Check the brackets and escapes.</div>';return}
+ const res=[];
+ docs.forEach(d=>{re.lastIndex=0;const title=re.test(d.name);let n=0,sn=[],m;re.lastIndex=0;
+  while((m=re.exec(d.text))&&n<500){if(!m[0]){re.lastIndex++;continue}n++;if(sn.length<4)sn.push(d.text.slice(Math.max(0,m.index-60),m.index+m[0].length+60).replace(/\s+/g,' '))}
+  const links=d.links.filter(l=>{re.lastIndex=0;return re.test(l)});
+  if(title||n||links.length)res.push({d,title,n,sn,links})});
+ const bs=new Set(brandsIn(q));res.forEach(r=>{brandsIn(r.d.name+' '+r.sn.join(' ')+' '+r.d.wo.items.map(i=>i.mfr).join(' ')).forEach(b=>bs.add(b))});
+ LAST={q,rx:$('#rx').checked,res,brands:[...bs]};GRP='all';
+ const h=ls('hist',[]);h.unshift({q,ts:Date.now(),title:res.filter(r=>r.title).length,inside:res.filter(r=>r.n).length,links:res.filter(r=>r.links.length).length,brands:[...bs],
+  m:res.slice(0,25).map(r=>({n:r.d.name,t:r.title,c:r.n,ocr:r.d.ocr,s:r.sn[0]||(r.links[0]||'')}))});sv('hist',h.slice(0,40));
+ renderResults();renderMan();renderHist()}
+function groupsOf(res){const g=[['all','All results',res.length],['title','Title matches',res.filter(r=>r.title).length],['inside','Inside files',res.filter(r=>r.n).length]];
+ ['PDF','Excel','Word','Photo (OCR)'].forEach(t=>g.push(['t:'+t,t,res.filter(r=>r.n&&typeName(r.d.type)==t).length]));
+ g.push(['xoi','Links (XOi etc.)',res.filter(r=>r.links.length).length]);return g}
+function renderResults(){
+ const G=$('#groups'),R=$('#results');if(!LAST){G.innerHTML='';R.innerHTML='';return}
+ const {res,q,brands}=LAST;
+ if(!res.length){G.innerHTML='';R.innerHTML=`<div class="card"><span class="chip z">No results found</span><p class="note">Nothing in titles or file text matches “${esc(q)}”. ${docs.length?'Try fewer characters, or check the Manuals tab for web results.':'The vault is empty. Add files above.'}</p></div>`;return}
+ G.innerHTML='<div class="chips">'+groupsOf(res).filter(g=>g[2]||g[0]=='all').map(g=>`<button class="chip ${GRP==g[0]?'on':''}" data-g="${g[0]}">${g[2]} ${g[1]}</button>`).join('')+
+  (brands.length?`<button class="chip" data-go="man">${brands.length} brand${brands.length>1?'s':''} → Google Advanced</button>`:'')+'</div>';
+ const f=res.filter(r=>GRP=='all'||(GRP=='title'&&r.title)||(GRP=='inside'&&r.n)||(GRP=='xoi'&&r.links.length)||(GRP.startsWith('t:')&&r.n&&typeName(r.d.type)==GRP.slice(2)));
+ const re=new RegExp(LAST.rx?q:escRe(q),'gi');
+ R.innerHTML=f.map(r=>`<div class="card"><b>${r.title?hl(r.d.name,re,'y'):esc(r.d.name)}</b><div style="margin-top:4px"><span class="tag">${typeName(r.d.type)}</span>${r.title?'<span class="tag">title match</span>':''}${r.n?`<span class="tag">${r.n} in file</span>`:''}${r.d.ocr?'<span class="tag">OCR</span>':''}${brandsIn(r.d.name+r.sn.join(' ')).map(b=>`<span class="tag">${esc(b)}</span>`).join('')}</div>`+
+  r.sn.map(s=>`<p class="sn">…${hl(s,re,'r')}…</p>`).join('')+r.links.map(l=>`<p class="sn"><a href="${esc(l)}" target="_blank" rel="noopener">${hl(l,re,'r')}</a></p>`).join('')+
+  `<details><summary>Read full text</summary><pre>${hl(r.d.text.slice(0,30000),re,'r')}</pre></details></div>`).join('')}
+
+/* library */
+function renderLib(){$('#libsum').textContent=`Repository (${docs.length} file${docs.length==1?'':'s'})`;
+ $('#lib').innerHTML=docs.map(d=>`<div class="row" style="justify-content:space-between;padding:4px 0"><span>${esc(d.name)} <span class="tag">${typeName(d.type)}</span></span><button class="g" data-del="${esc(d.id)}">Remove</button></div>`).join('')||'<p class="note">Empty.</p>'}
+
+/* analysis */
+const items=()=>docs.flatMap(d=>d.wo.items.map(i=>({...i,wo:d.wo.wo,date:d.wo.date,file:d.name})));
+const bars=rows=>{const mx=Math.max(1,...rows.map(r=>r[1]));return rows.map(r=>`<div class="bar"><b>${esc(r[0])}</b><span><i style="width:${r[1]/mx*100}%"></i></span><em>${r[1]}</em></div>`).join('')};
+function renderProbs(){const it=items();if(!it.length){$('#probs').innerHTML='<p class="note">Add work orders that contain an EQUIPMENT LEVEL RESOLUTIONS section.</p>';return}
+ const rows=Object.keys(CATS).map(k=>[k,it.filter(i=>i.cats.includes(k))]).filter(r=>r[1].length).sort((a,b)=>b[1].length-a[1].length);
+ $('#probs').innerHTML=bars(rows.map(r=>[r[0],r[1].length]))+rows.map(r=>`<details><summary>${esc(r[0])} (${r[1].length})</summary>${r[1].map(i=>`<p class="sn"><b>WO ${esc(i.wo)}</b> ${esc(i.mfr)} ${esc(i.model)} ${esc(i.equip)}<br>${esc(i.narr.replace(/\s+/g,' ').slice(0,260))}…</p>`).join('')}</details>`).join('')}
+function renderEquip(){const it=items().filter(i=>i.cats.length||i.recs.length),g=$('#grp').value;
+ if(!it.length){$('#equip').innerHTML='<p class="note">No equipment entries yet.</p>';return}
+ const key=i=>g=='mfr'?i.mfr:g=='m4'?(i.model||'?').slice(0,4).toUpperCase():g=='serial'?i.serial||'?':i.mfr+' '+(i.model||'?').slice(0,4).toUpperCase(),M={};
+ it.forEach(i=>(M[key(i)]=M[key(i)]||[]).push(i));const rows=Object.entries(M).sort((a,b)=>b[1].length-a[1].length);
+ $('#equip').innerHTML=bars(rows.map(r=>[r[0],r[1].length]))+rows.map(r=>`<details><summary>${esc(r[0])}: ${r[1].length} work order${r[1].length>1?'s':''}</summary>`+r[1].map(i=>`<p class="sn"><b>WO ${esc(i.wo)}</b> ${esc(i.date)} · ${esc(i.equip)} ${esc(i.desc)} · ${esc(i.model)} / ${esc(i.serial)}<br>${i.cats.map(c=>`<span class="tag">${esc(c)}</span>`).join('')}<br>${i.recs.map(x=>esc(x)).join('<br>')||'No additional request recorded'}</p>`).join('')+'</details>').join('')}
+
+/* manuals */
+function renderMan(){const bs=LAST?LAST.brands:[...new Set(docs.flatMap(d=>brandsIn(d.name+' '+d.text.slice(0,20000))))];
+ if(!$('#mq').value&&LAST)$('#mq').value=LAST.q;
+ const mine=ls('sites',[]);
+ $('#brands').innerHTML=bs.length?bs.map((b,n)=>{const st=[...new Set([...(SITES[b]||[]),...mine])];
+  return `<div class="card"><h3>${esc(b)}</h3><select data-dt="${n}">${DOCTYPES.map(t=>`<option>${t}</option>`).join('')}</select>
+  <div class="row" style="margin-top:8px"><button data-b="${esc(b)}" data-s="">Entire web</button><button class="g" data-b="${esc(b)}" data-s="" data-pdf="1">Web PDFs only</button></div>
+  <details><summary>Sites (${st.length})</summary><div class="row">${st.map(s=>`<button class="g" data-b="${esc(b)}" data-s="${esc(s)}" data-pdf="1">${esc(s)}</button>`).join('')}</div></details></div>`}).join(''):'<p class="note">No brands found yet. Search for a brand, model or a file that mentions one.</p>';
+ $('#sites').innerHTML=mine.map(s=>`<span class="tag">${esc(s)} <a href="#" data-rs="${esc(s)}">remove</a></span>`).join('')}
+function gUrl(b,s,pdf,dt){const p=new URLSearchParams({as_q:`${b} ${$('#mq').value} ${dt}`.replace(/\s+/g,' ').trim(),as_sitesearch:s,as_filetype:pdf?'pdf':''});return 'https://www.google.com/search?'+p}
+
+/* history */
+function renderHist(){const h=ls('hist',[]);$('#hist').innerHTML=h.map(x=>`<details><summary>${esc(x.q)} <span class="note">${new Date(x.ts).toLocaleString()}</span></summary>
+ <div class="chips"><span class="chip">${x.title} title</span><span class="chip">${x.inside} inside files</span>${x.links?`<span class="chip">${x.links} links</span>`:''}${!x.title&&!x.inside&&!x.links?'<span class="chip z">no results</span>':''}${x.brands.map(b=>`<span class="chip">${esc(b)}</span>`).join('')}</div>
+ ${x.m.map(m=>`<p class="sn"><b>${esc(m.n)}</b> ${m.t?'<span class="tag">title</span>':''}${m.c?`<span class="tag">${m.c} in file</span>`:''}${m.ocr?'<span class="tag">OCR</span>':''}<br>${esc(m.s)}</p>`).join('')}</details>`).join('')||'<p class="note">No searches yet.</p>';
+ const xs=docs.flatMap(d=>d.links.filter(l=>/xoi/i.test(l)).map(l=>[l,d.name]));
+ $('#xlist').innerHTML=xs.map(x=>`<p class="sn"><a href="${esc(x[0])}" target="_blank" rel="noopener">${esc(x[0])}</a><br>${esc(x[1])}</p>`).join('')||'<p class="note">None yet.</p>'}
+const renderAll=()=>{renderProbs();renderEquip();renderMan();renderHist()};
+
+/* events */
+const drop=$('#drop'),fi=$('#file');
+drop.onclick=()=>fi.click();drop.onkeydown=e=>{if(e.key=='Enter'||e.key==' ')fi.click()};fi.onchange=()=>handle([...fi.files]);
+['dragover','dragenter'].forEach(e=>document.addEventListener(e,x=>{x.preventDefault();drop.classList.add('on')}));
+['dragleave','drop'].forEach(e=>document.addEventListener(e,x=>{x.preventDefault();drop.classList.remove('on')}));
+document.addEventListener('drop',e=>handle([...e.dataTransfer.files]));
+$('#go').onclick=search;$('#q').onkeydown=e=>{if(e.key=='Enter')search()};$('#grp').onchange=renderEquip;
+document.body.addEventListener('click',async e=>{const t=e.target;
+ if(t.dataset.t){document.querySelectorAll('.v,nav button').forEach(x=>x.classList.remove('on'));$('#v-'+t.dataset.t).classList.add('on');t.classList.add('on');scrollTo(0,0)}
+ if(t.dataset.go)document.querySelector('nav [data-t=man]').click();
+ if(t.dataset.g){GRP=t.dataset.g;renderResults()}
+ if(t.dataset.del){await tx('readwrite',s=>s.delete(t.dataset.del));refresh()}
+ if(t.dataset.b!==undefined&&t.dataset.s!==undefined&&t.tagName=='BUTTON'){const dt=t.closest('.card').querySelector('select').value;open(gUrl(t.dataset.b,t.dataset.s,t.dataset.pdf,dt),'_blank','noopener')}
+ if(t.dataset.rs){e.preventDefault();sv('sites',ls('sites',[]).filter(s=>s!=t.dataset.rs));renderMan()}});
+$('#addsite').onclick=()=>{const v=$('#ns').value.trim().replace(/^https?:\/\//,'').replace(/\/.*$/,'');if(!v)return;const s=ls('sites',[]);if(!s.includes(v))s.push(v);sv('sites',s);$('#ns').value='';renderMan()};
+$('#clr').onclick=()=>{sv('hist',[]);renderHist()};
+$('#xadd').onclick=async()=>{const v=$('#xl').value.trim();if(!v)return;await addDoc(new File([v],'XOi note '+new Date().toISOString().slice(0,16)+'.txt',{type:'text/plain'}));$('#xl').value='';refresh()};
+$('#sample').onclick=()=>handle([new File([`Work Order: 10038875
+Visit: 947696
+Service Date: 01/15/24
+Location: Dover Signature Properties - Hyatt Place 530 South Gay Street , Knoxville TN 37902
+Requested Service: MTVISIT(Visit created from Mobile Tech) Smell gas from loop boiler
+EQUIPMENT LEVEL RESOLUTIONS
+Equipment Equipment Description Manufacturer Model / Serial No.
+Boiler 1 Condensing Boiler-HW Lochinvar FBN5000 / 1635103378977
+1-15-24 I did not observe the smell of raw natural gas, I did notice the loud hum of the bottom combustion motor when the boiler ran at minimum fire rate (less than 14%), it seems to be a fuel/air mixture issue. I enabled the 6 ramp rate settings. I closed the bottom mechanical ball valve about 20% post the modulating gas valve & the humming noise went away, I left this as is for now, & I also setup the external US Draft exhaust fan's VFD VIC controller for a 0% minimum per the IOM instead of 10% (6hz) minimum.
+-
+Next step:
+I will need to return to the site ASAP, calibrate the external CO sensor device on the wall near this boiler that is currently reading 0ppm, & verify a good fuel/air mixture of this boiler with a combustion analyzer.
+-
+Additional request:
+Trenton asked that I check the cooling tower basin heaters & order one ASAP to prevent the water from freezing.
+-
+Incomplete
+VISIT PICTURES
+CO sensor for mechanical room - needs recalibrated and/or replaced
+Signature: Date: 01-15-2024`],'SE221211 (example).txt',{type:'text/plain'})]);
+refresh();
+</script></body></html>
